@@ -51,6 +51,5 @@ env/
 # OS
 Thumbs.db
 .DS_Store
-
 secrets.toml
 .env
