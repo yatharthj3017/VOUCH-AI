@@ -18,15 +18,9 @@ st.set_page_config(page_title="Vouch | Extreme AI Core", page_icon="V", layout="
 # ==========================================
 
 def load_history():
-    """Returns a fresh default history for every new user session."""
     return {"Protocol Alpha": [{"role": "assistant", "content": "Neural net active. Awaiting your command, Sir."}]}
 
 def save_history(chat_data):
-    """
-    Ab hum kisi global JSON file mein data save nahi karenge.
-    Streamlit ka st.session_state har user/laptop ke liye automatically 
-    ek private memory maintain karega.
-    """
     pass
 
 # ==========================================
@@ -115,6 +109,9 @@ st.markdown("""
     
     button[kind="secondary"] { background: rgba(0,255,204,0.05) !important; color: #00ffcc !important; border: 1px solid #00ffcc !important; border-radius: 0px !important; font-family: 'Share Tech Mono', monospace !important; font-size: 18px !important; letter-spacing: 2px; transition: 0.2s ease !important; }
     button[kind="secondary"]:hover { background: rgba(0, 255, 204, 0.2) !important; color: #ffffff !important; box-shadow: 0 0 15px rgba(0, 255, 204, 0.5) !important; }
+    
+    /* Toggle switch customization */
+    [data-testid="stCheckbox"] { font-family: 'Share Tech Mono', monospace; color: #00ffcc !important; }
     
     .biometric-box { position: relative; width: 80px; height: 80px; margin: 0 auto 20px auto; border: 2px solid rgba(255,0,85,0.5); border-radius: 10px; overflow: hidden; background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Fingerprint_picture.svg/1024px-Fingerprint_picture.svg.png') center/cover; opacity: 0.7;}
     .scanner-laser { position: absolute; width: 100%; height: 3px; background: #00ffcc; box-shadow: 0 0 15px #00ffcc; animation: scanLaser 2.5s infinite alternate ease-in-out; }
@@ -301,6 +298,8 @@ if "current_chat" not in st.session_state:
     st.session_state.current_chat = list(st.session_state.chats.keys())[-1]
 if "chat_counter" not in st.session_state: 
     st.session_state.chat_counter = len(st.session_state.chats)
+if "voice_enabled" not in st.session_state: 
+    st.session_state.voice_enabled = True
 
 with st.sidebar:
     st.markdown("""
@@ -309,9 +308,8 @@ with st.sidebar:
         </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("<div style='border-top: 1px dashed rgba(0,255,204,0.3); margin-top:15px; padding-top:10px;'></div>", unsafe_allow_html=True)
     st.markdown("<h4 style='color:#00ffcc; font-family: \"Share Tech Mono\"; text-align:center; letter-spacing:2px;'> VOICE CORTEX</h4>", unsafe_allow_html=True)
-    
+        
     voice_options = ["J.A.R.V.I.S (UK Male)", "E.D.I.T.H (US Male)", "Indian News Anchor (Hindi/English)"]
     if "selected_voice" not in st.session_state: st.session_state.selected_voice = voice_options[0]
     st.session_state.selected_voice = st.radio("SELECT AI PERSONA:", voice_options, label_visibility="collapsed")
@@ -325,40 +323,29 @@ with st.sidebar:
         save_history(st.session_state.chats) 
         st.rerun()
         
-    # ---------------------------------------------------------
-    # 🔥 ADVANCED HISTORY SEARCH BAR ADDED HERE 🔥
-    # ---------------------------------------------------------
     st.markdown("<div style='border-top: 1px dashed rgba(0,255,204,0.3); margin-top:15px; padding-top:10px;'></div>", unsafe_allow_html=True)
     
-    # Search input field
     search_query = st.text_input(" SEARCH 🔎", placeholder="Search protocols or messages...").lower()
 
-    # Get all chat names and reverse for latest first
     chat_names = list(st.session_state.chats.keys())
     chat_names.reverse() 
 
-    # Filter logic: Title aur Message content dono mein search karega
     filtered_chats = []
     if search_query:
         for c_name in chat_names:
-            # Check title match
             if search_query in c_name.lower():
                 filtered_chats.append(c_name)
                 continue
-            
-            # Check inside message history match
             for msg in st.session_state.chats[c_name]:
                 if isinstance(msg["content"], str) and search_query in msg["content"].lower():
                     filtered_chats.append(c_name)
-                    break # Ek match milte hi is chat ko add karke next chat par jao
+                    break 
     else:
         filtered_chats = chat_names
 
-    # Display filtered sessions gracefully
     if not filtered_chats:
         st.markdown("<p style='color:#ff0055; font-family: \"Share Tech Mono\"; font-size: 14px; text-align: center;'>NO MATCHING DATA FOUND</p>", unsafe_allow_html=True)
     else:
-        # Safe indexing taaki Streamlit error na de agar current_chat filter list mein nahi hai
         try:
             default_idx = filtered_chats.index(st.session_state.current_chat)
         except ValueError:
@@ -370,9 +357,6 @@ with st.sidebar:
             st.session_state.current_chat = selected_chat
             st.rerun()
             
-    # ---------------------------------------------------------
-    # 🔥 TERMINAL CONTROLS 🔥
-    # ---------------------------------------------------------
     st.markdown("<div style='border-top: 1px dashed rgba(0,255,204,0.3); margin-top:15px; padding-top:10px;'></div>", unsafe_allow_html=True)
 
     if st.button("⚠️ NEW TERMINAL (WIPE ALL)", use_container_width=True):
@@ -436,6 +420,74 @@ for message in st.session_state.chats[st.session_state.current_chat]:
         if "audio" in message and message["audio"] is not None: st.audio(message["audio"], format="audio/wav")
 
 st.write("") 
+
+# ==========================================
+# 🔥 MAIN AREA: TACTICAL HUD CONTROLS 🔥
+# ==========================================
+st.markdown("""
+    <style>
+    .tactical-panel {
+        animation: hudSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        border-top: 1px solid rgba(0, 255, 204, 0.5);
+        border-bottom: 1px solid rgba(0, 255, 204, 0.5);
+        background: linear-gradient(90deg, transparent, rgba(0, 255, 204, 0.05), transparent);
+        padding: 10px 0;
+        margin-bottom: 15px;
+        text-align: center;
+        color: #00ffcc;
+        font-family: 'Share Tech Mono', monospace;
+        letter-spacing: 5px;
+        font-size: 14px;
+        box-shadow: 0 0 20px rgba(0, 255, 204, 0.05);
+    }
+    @keyframes hudSlideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    </style>
+    <div class="tactical-panel">/// TACTICAL OVERRIDE ACTIVE ///</div>
+""", unsafe_allow_html=True)
+
+colA, colB = st.columns([1, 1])
+with colA:
+    st.session_state.voice_enabled = st.toggle("🔊 VOICE FEED (ON/OFF)", value=st.session_state.voice_enabled)
+
+with colB:
+    # 🛑 INSTANT JS STOP BUTTON (No Python Rerun Required!)
+    stop_btn_html = """
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+    .glow-stop-btn {
+        background: transparent;
+        border: 1px solid #ff0055;
+        color: #ff0055;
+        font-family: 'Share Tech Mono', monospace;
+        font-size: 14px;
+        font-weight: bold;
+        padding: 8px 15px;
+        cursor: pointer;
+        width: 100%;
+        border-radius: 5px;
+        animation: pulseAlert 1.5s infinite alternate;
+        letter-spacing: 3px;
+        transition: 0.3s ease;
+    }
+    .glow-stop-btn:hover {
+        background: rgba(255,0,85,0.2);
+        box-shadow: 0 0 20px #ff0055;
+        transform: scale(1.02);
+    }
+    @keyframes pulseAlert {
+        from { box-shadow: 0 0 5px rgba(255, 0, 85, 0.1); }
+        to { box-shadow: 0 0 15px rgba(255, 0, 85, 0.5); }
+    }
+    </style>
+    <button class="glow-stop-btn" onclick="window.parent.speechSynthesis.cancel(); window.speechSynthesis.cancel();">
+        🛑 STOP AUDIO
+    </button>
+    """
+    components.html(stop_btn_html, height=45)
+
 with st.expander("🎛️ DATA UPLOAD (VISUAL/AUDIO)"):
     col1, col2 = st.columns(2)
     with col1: uploaded_file = st.file_uploader("Scan Visual Data", type=["png", "jpg", "jpeg"])
@@ -465,47 +517,52 @@ if user_input:
         response_text = "System online. Good to see you, sir."
         with st.chat_message("assistant", avatar="🤖"):
             st.markdown(response_text)
-            js_voice = f"""
-            <script>
-                window.speechSynthesis.cancel();
-                var synth = window.speechSynthesis;
-                var msg = new SpeechSynthesisUtterance("System online. Good to see you, sir.");
-                
-                var selectedPersona = "{st.session_state.selected_voice}";
-                var voices = synth.getVoices();
-                var targetVoice = null;
-                
-                if (selectedPersona.includes("J.A.R.V.I.S")) {{
-                    targetVoice = voices.find(v => v.name.includes("Google UK English Male") || v.name.includes("David") || (v.lang === "en-GB" && v.name.includes("Male")) || v.name.includes("UK"));
-                    msg.pitch = 0.2;
-                    msg.rate = 1.0;
-                    msg.lang = "en-GB";
-                }} else if (selectedPersona.includes("Indian News Anchor")) {{
-                    msg.lang = "hi-IN"; 
-                    targetVoice = voices.find(v => 
-                        v.name.includes("Google हिन्दी") || 
-                        v.name.includes("Hemant") || 
-                        v.name.includes("Rishi") || 
-                        v.name.includes("Ravi") || 
-                        (v.lang.includes("hi-IN") && v.name.includes("Male")) ||
-                        (v.lang.includes("en-IN") && v.name.includes("Male")) ||
-                        v.lang === "hi-IN" || 
-                        v.lang === "en-IN"
-                    );
-                    msg.pitch = 0.85; 
-                    msg.rate = 0.95;  
-                }} else {{
-                    targetVoice = voices.find(v => v.name.includes("Google US English") || v.name.includes("Mark") || v.name.includes("Alex") || v.lang === "en-US");
-                    msg.pitch = 0.8;
-                    msg.rate = 1.0;
-                    msg.lang = "en-US";
-                }}
-                
-                if(targetVoice) msg.voice = targetVoice;
-                synth.speak(msg);
-            </script>
-            """
-            components.html(js_voice, height=0)
+            
+            if st.session_state.voice_enabled:
+                js_voice = f"""
+                <script>
+                    window.speechSynthesis.cancel();
+                    var synth = window.speechSynthesis;
+                    var msg = new SpeechSynthesisUtterance("System online. Good to see you, sir.");
+                    
+                    var selectedPersona = "{st.session_state.selected_voice}";
+                    var voices = synth.getVoices();
+                    var targetVoice = null;
+                    
+                    if (selectedPersona.includes("J.A.R.V.I.S")) {{
+                        targetVoice = voices.find(v => v.name.includes("Google UK English Male") || v.name.includes("David") || (v.lang === "en-GB" && v.name.includes("Male")) || v.name.includes("UK"));
+                        msg.pitch = 0.2;
+                        msg.rate = 1.0;
+                        msg.lang = "en-GB";
+                    }} else if (selectedPersona.includes("Indian News Anchor")) {{
+                        msg.lang = "hi-IN"; 
+                        targetVoice = voices.find(v => 
+                            v.name.includes("Google हिन्दी") || 
+                            v.name.includes("Hemant") || 
+                            v.name.includes("Rishi") || 
+                            v.name.includes("Ravi") || 
+                            (v.lang.includes("hi-IN") && v.name.includes("Male")) ||
+                            (v.lang.includes("en-IN") && v.name.includes("Male")) ||
+                            v.lang === "hi-IN" || 
+                            v.lang === "en-IN"
+                        );
+                        msg.pitch = 0.85; 
+                        msg.rate = 0.95;  
+                    }} else {{
+                        targetVoice = voices.find(v => v.name.includes("Google US English") || v.name.includes("Mark") || v.name.includes("Alex") || v.lang === "en-US");
+                        msg.pitch = 0.8;
+                        msg.rate = 1.0;
+                        msg.lang = "en-US";
+                    }}
+                    
+                    if(targetVoice) msg.voice = targetVoice;
+                    synth.speak(msg);
+                </script>
+                """
+                components.html(js_voice, height=0)
+            else:
+                components.html("<script>window.speechSynthesis.cancel();</script>", height=0)
+
         st.session_state.chats[st.session_state.current_chat].append({"role": "assistant", "content": response_text})
         save_history(st.session_state.chats)
     
@@ -547,47 +604,50 @@ if user_input:
                     clean_speech = re.sub(r'[*#_`🛑🔍📰]', '', response_text) 
                     clean_speech = clean_speech.replace('\n', '. ').replace('"', "'") 
                     
-                    js_speak = f"""
-                    <script>
-                        window.speechSynthesis.cancel();
-                        var synth = window.speechSynthesis;
-                        var msg = new SpeechSynthesisUtterance("{clean_speech}");
-                        
-                        var selectedPersona = "{st.session_state.selected_voice}";
-                        var voices = synth.getVoices();
-                        var targetVoice = null;
-                        
-                        if (selectedPersona.includes("J.A.R.V.I.S")) {{
-                            targetVoice = voices.find(v => v.name.includes("Google UK English Male") || v.name.includes("David") || (v.lang === "en-GB" && v.name.includes("Male")) || v.name.includes("UK"));
-                            msg.pitch = 0.2;
-                            msg.rate = 1.0;
-                            msg.lang = "en-GB";
-                        }} else if (selectedPersona.includes("Indian News Anchor")) {{
-                            msg.lang = "hi-IN"; 
-                            targetVoice = voices.find(v => 
-                                v.name.includes("Google हिन्दी") || 
-                                v.name.includes("Hemant") || 
-                                v.name.includes("Rishi") || 
-                                v.name.includes("Ravi") || 
-                                (v.lang.includes("hi-IN") && v.name.includes("Male")) ||
-                                (v.lang.includes("en-IN") && v.name.includes("Male")) ||
-                                v.lang === "hi-IN" || 
-                                v.lang === "en-IN"
-                            );
-                            msg.pitch = 0.85; 
-                            msg.rate = 0.95;  
-                        }} else {{
-                            targetVoice = voices.find(v => v.name.includes("Google US English") || v.name.includes("Mark") || v.name.includes("Alex") || v.lang === "en-US");
-                            msg.pitch = 0.8;
-                            msg.rate = 1.0;
-                            msg.lang = "en-US";
-                        }}
-                        
-                        if(targetVoice) msg.voice = targetVoice;
-                        synth.speak(msg);
-                    </script>
-                    """
-                    components.html(js_speak, height=0)
+                    if st.session_state.voice_enabled:
+                        js_speak = f"""
+                        <script>
+                            window.speechSynthesis.cancel();
+                            var synth = window.speechSynthesis;
+                            var msg = new SpeechSynthesisUtterance("{clean_speech}");
+                            
+                            var selectedPersona = "{st.session_state.selected_voice}";
+                            var voices = synth.getVoices();
+                            var targetVoice = null;
+                            
+                            if (selectedPersona.includes("J.A.R.V.I.S")) {{
+                                targetVoice = voices.find(v => v.name.includes("Google UK English Male") || v.name.includes("David") || (v.lang === "en-GB" && v.name.includes("Male")) || v.name.includes("UK"));
+                                msg.pitch = 0.2;
+                                msg.rate = 1.0;
+                                msg.lang = "en-GB";
+                            }} else if (selectedPersona.includes("Indian News Anchor")) {{
+                                msg.lang = "hi-IN"; 
+                                targetVoice = voices.find(v => 
+                                    v.name.includes("Google हिन्दी") || 
+                                    v.name.includes("Hemant") || 
+                                    v.name.includes("Rishi") || 
+                                    v.name.includes("Ravi") || 
+                                    (v.lang.includes("hi-IN") && v.name.includes("Male")) ||
+                                    (v.lang.includes("en-IN") && v.name.includes("Male")) ||
+                                    v.lang === "hi-IN" || 
+                                    v.lang === "en-IN"
+                                );
+                                msg.pitch = 0.85; 
+                                msg.rate = 0.95;  
+                            }} else {{
+                                targetVoice = voices.find(v => v.name.includes("Google US English") || v.name.includes("Mark") || v.name.includes("Alex") || v.lang === "en-US");
+                                msg.pitch = 0.8;
+                                msg.rate = 1.0;
+                                msg.lang = "en-US";
+                            }}
+                            
+                            if(targetVoice) msg.voice = targetVoice;
+                            synth.speak(msg);
+                        </script>
+                        """
+                        components.html(js_speak, height=0)
+                    else:
+                        components.html("<script>window.speechSynthesis.cancel();</script>", height=0)
                     
                 except Exception as e:
                     error_msg = str(e)
