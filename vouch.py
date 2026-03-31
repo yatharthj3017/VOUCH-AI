@@ -8,41 +8,26 @@ import xml.etree.ElementTree as ET
 import json
 import time
 import re
-import os  
-from duckduckgo_search import DDGS  
+import os
+from duckduckgo_search import DDGS
 
 st.set_page_config(page_title="Vouch | Extreme AI Core", page_icon="V", layout="wide", initial_sidebar_state="expanded")
 
 # ==========================================
-# 💾 0. LOCAL DATABASE LOGIC (SAVE/LOAD HISTORY)
+# 💾 0. LOCAL DATABASE LOGIC (SESSION ONLY - MULTI-USER SAFE)
 # ==========================================
-HISTORY_FILE = "vouch_chat_history.json"
 
 def load_history():
-    """Reads chat history from the JSON file on startup."""
-    if os.path.exists(HISTORY_FILE):
-        try:
-            with open(HISTORY_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            pass # Failsafe: if file is corrupt, load default
-            
+    """Returns a fresh default history for every new user session."""
     return {"Protocol Alpha": [{"role": "assistant", "content": "Neural net active. Awaiting your command, Sir."}]}
 
 def save_history(chat_data):
-    """Saves the current chat history to a JSON file."""
-    serializable_data = {}
-    for chat_name, messages in chat_data.items():
-        serializable_data[chat_name] = []
-        for msg in messages:
-            # Drop image/audio objects because JSON can only save text
-            serializable_data[chat_name].append({
-                "role": msg["role"], 
-                "content": msg["content"]
-            })
-            
-    with open(HISTORY_FILE, "w", encoding="utf-8") as f:
-        json.dump(serializable_data, f, indent=4)
+    """
+    Ab hum kisi global JSON file mein data save nahi karenge.
+    Streamlit ka st.session_state har user/laptop ke liye automatically 
+    ek private memory maintain karega.
+    """
+    pass
 
 # ==========================================
 # 🔥 1. EXTREME LIVE ADVANCED CSS
@@ -384,15 +369,25 @@ with st.sidebar:
         if selected_chat != st.session_state.current_chat:
             st.session_state.current_chat = selected_chat
             st.rerun()
+            
     # ---------------------------------------------------------
-        
-    if st.button("DELETE MEMORY", use_container_width=True):
+    # 🔥 TERMINAL CONTROLS 🔥
+    # ---------------------------------------------------------
+    st.markdown("<div style='border-top: 1px dashed rgba(0,255,204,0.3); margin-top:15px; padding-top:10px;'></div>", unsafe_allow_html=True)
+
+    if st.button("⚠️ NEW TERMINAL (WIPE ALL)", use_container_width=True):
+        fresh_start = {"Protocol Alpha": [{"role": "assistant", "content": "Neural net active. Awaiting your command, Sir."}]}
+        st.session_state.chats = fresh_start
+        st.session_state.current_chat = "Protocol Alpha"
+        st.session_state.chat_counter = 1
+        st.rerun()
+
+    if st.button("DELETE CURRENT CHAT", use_container_width=True):
         if len(st.session_state.chats) > 1:
             del st.session_state.chats[st.session_state.current_chat]
             st.session_state.current_chat = list(st.session_state.chats.keys())[-1] 
         else:
             st.session_state.chats[st.session_state.current_chat] = [{"role": "assistant", "content": "Neural net active. Awaiting your command, Sir."}]
-        save_history(st.session_state.chats) 
         st.rerun()
             
     if st.button("LOGOUT", use_container_width=True):
