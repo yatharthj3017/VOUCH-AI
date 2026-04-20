@@ -13,9 +13,7 @@ from duckduckgo_search import DDGS
 
 st.set_page_config(page_title="Vouch | Extreme AI Core", page_icon="V", layout="wide", initial_sidebar_state="expanded")
 
-# ==========================================
-# 💾 0. LOCAL DATABASE LOGIC (SESSION ONLY - MULTI-USER SAFE)
-# ==========================================
+
 
 def load_history():
     return {"Protocol Alpha": [{"role": "assistant", "content": "Neural net active. Awaiting your command, Sir."}]}
@@ -23,9 +21,7 @@ def load_history():
 def save_history(chat_data):
     pass
 
-# ==========================================
-# 🔥 1. EXTREME LIVE ADVANCED CSS
-# ==========================================
+
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
@@ -120,9 +116,7 @@ st.markdown("""
     <div class="particle-layer"></div>
     """, unsafe_allow_html=True)
 
-# ==========================================
-# 🔥 2. PURE LIVE WEB SEARCH (NO CACHE)
-# ==========================================
+
 def search_live_web(query):
     if len(query.split()) < 2: return "NO_DATA"
     web_data = ""
@@ -149,9 +143,7 @@ def search_live_web(query):
 
 if "app_stage" not in st.session_state: st.session_state.app_stage = "splash"
 
-# ==========================================
-# ⚡ STAGES 1, 2 & 3: BOOT & LOGIN
-# ==========================================
+
 if st.session_state.app_stage == "splash":
     st.markdown("""
         <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 50vh; margin-top: 5vh; position: relative; z-index: 10;">
@@ -247,9 +239,7 @@ if st.session_state.app_stage == "login":
                     st.rerun()
     st.stop()
 
-# ==========================================
-# 🤖 STAGE 4: MAIN EXTREME AI CORE
-# ==========================================
+
 try:
     API_KEY = st.secrets["API_KEY"] 
     genai.configure(api_key=API_KEY)
@@ -421,9 +411,7 @@ for message in st.session_state.chats[st.session_state.current_chat]:
 
 st.write("") 
 
-# ==========================================
-# 🔥 MAIN AREA: TACTICAL HUD CONTROLS 🔥
-# ==========================================
+
 st.markdown("""
     <style>
     .tactical-panel {
